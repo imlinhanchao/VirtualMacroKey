@@ -52,17 +52,22 @@ CVirtualMacroKeyDlg::CVirtualMacroKeyDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CVirtualMacroKeyDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_bRecord = false;
 }
 
 void CVirtualMacroKeyDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_LIST_MACRO, m_List);
+	DDX_Control(pDX, IDC_CMB_TIME, m_cmbTime);
 }
 
 BEGIN_MESSAGE_MAP(CVirtualMacroKeyDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_RECORD, &CVirtualMacroKeyDlg::OnBnClickedBtnRecord)
+	ON_WM_INPUT()
 END_MESSAGE_MAP()
 
 
@@ -151,3 +156,38 @@ HCURSOR CVirtualMacroKeyDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void CVirtualMacroKeyDlg::OnRawInput(UINT nInputcode, HRAWINPUT hRawInput)
+{
+	// This feature requires Windows XP or greater.
+	// The symbol _WIN32_WINNT must be >= 0x0501.
+	// TODO: Add your message handler code here and/or call default
+
+	CDialogEx::OnRawInput(nInputcode, hRawInput);
+}
+
+void CVirtualMacroKeyDlg::OnBnClickedBtnRecord()
+{
+	m_bRecord = !m_bRecord;
+	if(m_bRecord) CRawInput::Register(m_hWnd, m_wRawType = GetInputType());
+	else CRawInput::Remove(m_hWnd, m_wRawType);
+
+	GetDlgItem(IDC_CHK_KEYBOARD)->EnableWindow(!m_bRecord);
+	GetDlgItem(IDC_CHK_MOUSE)->EnableWindow(!m_bRecord);
+	GetDlgItem(IDC_CHK_CURSOR)->EnableWindow(!m_bRecord);
+}
+
+void CVirtualMacroKeyDlg::InitUi()
+{
+
+}
+
+WORD CVirtualMacroKeyDlg::GetInputType()
+{
+	WORD wRawType = 0;
+
+	if(((CButton*)GetDlgItem(IDC_CHK_KEYBOARD))->GetCheck() == BST_CHECKED) wRawType |= RAW_TYPE_KB;
+	if(((CButton*)GetDlgItem(IDC_CHK_MOUSE))->GetCheck() == BST_CHECKED) wRawType |= RAW_TYPE_MS;
+	if(((CButton*)GetDlgItem(IDC_CHK_CURSOR))->GetCheck() == BST_CHECKED) wRawType |= RAW_TYPE_MS;
+
+	return wRawType;
+}

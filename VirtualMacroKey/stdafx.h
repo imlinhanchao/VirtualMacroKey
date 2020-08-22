@@ -56,3 +56,6 @@
 #endif
 
 
+#include "include/HotKey.h"
+#include "include/RawInput.h"
+using namespace Easy;
