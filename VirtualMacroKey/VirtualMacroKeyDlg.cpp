@@ -102,7 +102,7 @@ BOOL CVirtualMacroKeyDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	// TODO: Add extra initialization here
+	InitUi();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -158,10 +158,32 @@ HCURSOR CVirtualMacroKeyDlg::OnQueryDragIcon()
 
 void CVirtualMacroKeyDlg::OnRawInput(UINT nInputcode, HRAWINPUT hRawInput)
 {
-	// This feature requires Windows XP or greater.
-	// The symbol _WIN32_WINNT must be >= 0x0501.
-	// TODO: Add your message handler code here and/or call default
+	if(!m_bRecord) return;
+	bool bPause = ((CButton*)GetDlgItem(IDC_CHK_PAUSE))->GetCheck() == BST_CHECKED;
 
+	UINT dwSize;
+	BYTE* lpb;
+	RAWINPUT* raw;
+
+	GetRawInputData(hRawInput, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+	if (dwSize < sizeof (lpb))
+	{
+		if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize)
+		{
+			raw = (RAWINPUT*)lpb;
+			if (raw->header.dwType == RIM_TYPEKEYBOARD) 
+			{
+				RAWKEYBOARD keyboard = raw->data.keyboard;
+				if(bPause && keyboard.VKey == VK_PAUSE) return OnBnClickedBtnRecord();
+				// show keyboard key
+			}
+			if (raw->header.dwType == RIM_TYPEMOUSE)
+			{
+				RAWMOUSE mouse = raw->data.mouse;
+				// show mouse key
+			}
+		}
+	}
 	CDialogEx::OnRawInput(nInputcode, hRawInput);
 }
 
@@ -178,7 +200,15 @@ void CVirtualMacroKeyDlg::OnBnClickedBtnRecord()
 
 void CVirtualMacroKeyDlg::InitUi()
 {
+	CComboBox* pCmb = (CComboBox*)GetDlgItem(IDC_CMB_TIME);
 
+	CString sTimes[] = { _T("Auto Time"), _T("Fixed Time"), _T("No Delay") };
+	const int nSize = sizeof(sTimes) / sizeof(CString);
+	for (int i = 0; i < nSize; i++)
+	{
+		pCmb->AddString(sTimes[i]);
+	}
+	pCmb->SetCurSel(0);
 }
 
 WORD CVirtualMacroKeyDlg::GetInputType()
