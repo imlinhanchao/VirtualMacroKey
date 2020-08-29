@@ -158,57 +158,70 @@ HCURSOR CVirtualMacroKeyDlg::OnQueryDragIcon()
 
 void CVirtualMacroKeyDlg::OnRawInput(UINT nInputcode, HRAWINPUT hRawInput)
 {
-	if(!m_bRecord) return;
-	bool bPause = ((CButton*)GetDlgItem(IDC_CHK_PAUSE))->GetCheck() == BST_CHECKED;
-
-	UINT dwSize;
-	BYTE* lpb;
-	RAWINPUT* raw;
+	if(!m_bRecord) return CDialogEx::OnRawInput(nInputcode, hRawInput);
+	UINT dwSize = 0;
+	BYTE* lpb = NULL;
+	RAWINPUT* raw = NULL;
 
 	GetRawInputData(hRawInput, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
-	if (dwSize < sizeof (lpb))
+	if (dwSize == 0) goto DONE;
+
+	lpb = new BYTE[dwSize];
+	if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+		goto DONE;
+
+	raw = (RAWINPUT*)lpb;
+	if (raw->header.dwType == RIM_TYPEKEYBOARD) 
 	{
-		if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize)
-		{
-			raw = (RAWINPUT*)lpb;
-			if (raw->header.dwType == RIM_TYPEKEYBOARD) 
-			{
-				RAWKEYBOARD keyboard = raw->data.keyboard;
-				if(bPause && keyboard.VKey == VK_PAUSE) return OnBnClickedBtnRecord();
-				// show keyboard key
-			}
-			if (raw->header.dwType == RIM_TYPEMOUSE)
-			{
-				RAWMOUSE mouse = raw->data.mouse;
-				// show mouse key
-			}
+		RAWKEYBOARD keyboard = raw->data.keyboard;
+		if(IsUsePause() && keyboard.VKey == VK_PAUSE){
+			OnBnClickedBtnRecord();
+			goto DONE;
 		}
+		PushKey(keyboard);
 	}
+
+	if (raw->header.dwType == RIM_TYPEMOUSE)
+	{
+		RAWMOUSE mouse = raw->data.mouse;
+		PushKey(mouse);
+	}
+
+DONE:
+	if(lpb != NULL) delete lpb;
+	
 	CDialogEx::OnRawInput(nInputcode, hRawInput);
 }
 
 void CVirtualMacroKeyDlg::OnBnClickedBtnRecord()
 {
 	m_bRecord = !m_bRecord;
-	if(m_bRecord) CRawInput::Register(m_hWnd, m_wRawType = GetInputType());
+	m_wRawType = GetInputType();
+
+	if(m_wRawType == 0) {
+		MessageBox(_T("Please choose one record type less."));
+		return;
+	}
+
+	if(m_bRecord) CRawInput::Register(m_hWnd, m_wRawType);
 	else CRawInput::Remove(m_hWnd, m_wRawType);
 
 	GetDlgItem(IDC_CHK_KEYBOARD)->EnableWindow(!m_bRecord);
 	GetDlgItem(IDC_CHK_MOUSE)->EnableWindow(!m_bRecord);
 	GetDlgItem(IDC_CHK_CURSOR)->EnableWindow(!m_bRecord);
+
+	SetDlgItemText(IDC_BTN_RECORD, m_bRecord ? _T("Stop") : _T("Record"));
 }
 
 void CVirtualMacroKeyDlg::InitUi()
 {
-	CComboBox* pCmb = (CComboBox*)GetDlgItem(IDC_CMB_TIME);
-
 	CString sTimes[] = { _T("Auto Time"), _T("Fixed Time"), _T("No Delay") };
 	const int nSize = sizeof(sTimes) / sizeof(CString);
 	for (int i = 0; i < nSize; i++)
 	{
-		pCmb->AddString(sTimes[i]);
+		m_cmbTime.AddString(sTimes[i]);
 	}
-	pCmb->SetCurSel(0);
+	m_cmbTime.SetCurSel(0);
 }
 
 WORD CVirtualMacroKeyDlg::GetInputType()
@@ -220,4 +233,157 @@ WORD CVirtualMacroKeyDlg::GetInputType()
 	if(((CButton*)GetDlgItem(IDC_CHK_CURSOR))->GetCheck() == BST_CHECKED) wRawType |= RAW_TYPE_MS;
 
 	return wRawType;
+}
+
+void CVirtualMacroKeyDlg::PushKey( RAWKEYBOARD keyboard )
+{
+	if (!IsRecordKeyboard()) return;
+
+	static RAWKEYBOARD keyLast = {0};
+
+	if(keyboard.Flags == keyLast.Flags 
+	&& keyboard.VKey  == keyLast.VKey) return;
+
+	PushTime();
+
+	MACROS_UNIT unit;
+	unit.dwValue = keyboard.VKey;
+
+	CString sName = CHotKey::GetHotKeyName(keyboard.VKey);
+
+	if (keyboard.Flags == RI_KEY_BREAK)
+	{
+		sName += _T(" Up");
+		unit.nType = MACROS_KEYBOARDUP;
+	}
+	else if (keyboard.Flags == RI_KEY_MAKE)
+	{
+		sName += _T(" Down");
+		unit.nType = MACROS_KEYBOARDOWN;
+	}
+
+	m_macros.lstMacro.push_back(unit);
+	m_List.AddString(sName);
+	m_List.SetTopIndex(m_List.GetCount() - 1);
+	keyLast = keyboard;
+}
+
+void CVirtualMacroKeyDlg::PushKey( RAWMOUSE mouse )
+{
+	if(!IsRecordMouse()) return;
+
+	CString sMouse = _T(""); 
+
+	MACROS_UNIT unit;
+	switch(mouse.usButtonFlags)
+	{
+	case RI_MOUSE_LEFT_BUTTON_DOWN:		
+	case RI_MOUSE_LEFT_BUTTON_UP:		sMouse += _T("Mouse Left ");
+		unit.dwValue = MOUSE_LEFT;
+		break;
+	case RI_MOUSE_RIGHT_BUTTON_DOWN:	
+	case RI_MOUSE_RIGHT_BUTTON_UP:		sMouse += _T("Mouse Right ");
+		unit.dwValue = MOUSE_RIGHT;
+		break;
+	case RI_MOUSE_MIDDLE_BUTTON_DOWN:	
+	case RI_MOUSE_MIDDLE_BUTTON_UP:		sMouse += _T("Mouse Middle ");
+		unit.dwValue = MOUSE_MIDDLE;
+		break;
+	default: return;
+	}
+
+	if(mouse.usButtonFlags == RI_MOUSE_LEFT_BUTTON_DOWN
+		|| mouse.usButtonFlags == RI_MOUSE_RIGHT_BUTTON_DOWN
+		|| mouse.usButtonFlags == RI_MOUSE_MIDDLE_BUTTON_DOWN)
+	{
+		sMouse += _T("Down");
+		unit.nType = MACROS_MOUSEDOWN;
+	}
+	else if(mouse.usButtonFlags == RI_MOUSE_LEFT_BUTTON_UP
+		|| mouse.usButtonFlags == RI_MOUSE_RIGHT_BUTTON_UP
+		|| mouse.usButtonFlags == RI_MOUSE_MIDDLE_BUTTON_UP)
+	{
+		sMouse += _T("Up");
+		unit.nType = MACROS_MOUSEUP;
+	}
+	else
+	{
+		return;
+	}
+
+	PushTime();
+
+	if(IsRecordCursorPos())
+	{
+		POINT pt;
+		CString sMousePt;
+		GetCursorPos(&pt);
+		unit.nType = MACROS_MOUSEX;
+		unit.dwValue = pt.x;
+		m_macros.lstMacro.push_back(unit);
+		unit.nType = MACROS_MOUSEY;
+		unit.dwValue = pt.y;
+		m_macros.lstMacro.push_back(unit);
+		sMousePt.Format(_T("X:%d, Y:%d"), pt.x, pt.y);
+		m_List.AddString(sMousePt);
+	}
+
+	m_macros.lstMacro.push_back(unit);
+	m_List.AddString(sMouse);
+}
+
+void CVirtualMacroKeyDlg::PushTime()
+{
+	TIME_TYPE time = GetTimeType();
+	if (m_dwLastTime <= 0 || time == TIME_NONE) {
+		m_dwLastTime = ::GetTickCount();
+		return;
+	}
+
+	CString sTime;
+	DWORD dwTick = GetTimeElapse(m_dwLastTime);
+	if (time == TIME_FIXEDTIME)
+	{
+		((CEdit*)GetDlgItem(IDC_EDIT_TIME))->GetWindowText(sTime);
+		dwTick = _ttoi(sTime);
+	}
+	sTime.Format(_T("Delay %d ms"), dwTick);
+	m_List.AddString(sTime);
+
+	MACROS_UNIT unit;
+	unit.dwValue = dwTick;
+	unit.nType = MACROS_DELAY;
+	m_macros.lstMacro.push_back(unit);
+
+	m_dwLastTime = ::GetTickCount();
+}
+
+bool CVirtualMacroKeyDlg::IsUsePause()
+{
+	return ((CButton*)GetDlgItem(IDC_CHK_PAUSE))->GetCheck() == BST_CHECKED;
+}
+
+bool CVirtualMacroKeyDlg::IsRecordKeyboard()
+{
+	return ((CButton*)GetDlgItem(IDC_CHK_KEYBOARD))->GetCheck() == BST_CHECKED;
+}
+
+bool CVirtualMacroKeyDlg::IsRecordMouse()
+{
+	return ((CButton*)GetDlgItem(IDC_CHK_MOUSE))->GetCheck() == BST_CHECKED;
+}
+
+bool CVirtualMacroKeyDlg::IsRecordCursorPos()
+{
+	return ((CButton*)GetDlgItem(IDC_CHK_CURSOR))->GetCheck() == BST_CHECKED;
+}
+
+TIME_TYPE CVirtualMacroKeyDlg::GetTimeType()
+{
+	return (TIME_TYPE)m_cmbTime.GetCurSel();
+}
+
+DWORD CVirtualMacroKeyDlg::GetTimeElapse( DWORD dwOldTick )
+{
+	return (::GetTickCount() - dwOldTick);
 }
