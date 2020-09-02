@@ -68,6 +68,9 @@ BEGIN_MESSAGE_MAP(CVirtualMacroKeyDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_RECORD, &CVirtualMacroKeyDlg::OnBnClickedBtnRecord)
 	ON_WM_INPUT()
+	ON_BN_CLICKED(IDC_BTN_CLEAR, &CVirtualMacroKeyDlg::OnBnClickedBtnClear)
+	ON_BN_CLICKED(IDC_BTN_REMOVE, &CVirtualMacroKeyDlg::OnBnClickedBtnRemove)
+	ON_BN_CLICKED(IDC_BTN_ADD, &CVirtualMacroKeyDlg::OnBnClickedBtnAdd)
 END_MESSAGE_MAP()
 
 
@@ -386,4 +389,26 @@ TIME_TYPE CVirtualMacroKeyDlg::GetTimeType()
 DWORD CVirtualMacroKeyDlg::GetTimeElapse( DWORD dwOldTick )
 {
 	return (::GetTickCount() - dwOldTick);
+}
+
+
+void CVirtualMacroKeyDlg::OnBnClickedBtnClear()
+{
+	m_List.ResetContent();
+	m_macros.lstMacro.clear();
+}
+
+
+void CVirtualMacroKeyDlg::OnBnClickedBtnRemove()
+{
+	int nIndex = m_List.GetCurSel();
+	if (nIndex < 0) return;
+	m_List.DeleteString(nIndex);
+	m_macros.lstMacro.erase(m_macros.lstMacro.begin() + nIndex);
+}
+
+
+void CVirtualMacroKeyDlg::OnBnClickedBtnAdd()
+{
+	
 }

@@ -51,6 +51,12 @@
     <ClInclude Include="include\Base.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="UnitDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyEdit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VirtualMacroKey.cpp">
@@ -70,6 +76,12 @@
     </ClCompile>
     <ClCompile Include="include\HotKey.cpp">
       <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KeyEdit.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

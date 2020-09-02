@@ -116,4 +116,8 @@ protected:
 	DWORD	  m_dwLastTime;
 
 	MACROS	  m_macros;
+public:
+	afx_msg void OnBnClickedBtnClear();
+	afx_msg void OnBnClickedBtnRemove();
+	afx_msg void OnBnClickedBtnAdd();
 };
