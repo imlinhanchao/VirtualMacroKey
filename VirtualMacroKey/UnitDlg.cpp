@@ -24,6 +24,7 @@ CUnitDlg::~CUnitDlg()
 void CUnitDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_EDIT_KEY, m_editKey);
 }
 
 
@@ -38,7 +39,7 @@ BOOL CUnitDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// TODO:  Add extra initialization here
+	m_editKey.SetSingleKey(false, true);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

@@ -49,6 +49,11 @@ CString CHotKey::GetHotKeyName( DWORD dwHotKey )
 		sKey = _T("Pause");
 	}
 
+	if (dwKeyCode == VK_LWIN || dwKeyCode == VK_RWIN)
+	{
+		sKey = _T("Win");
+	}
+
 	if(_T(" ") == sKey) 
 	{
 		sKey = _T("Space");
@@ -82,6 +87,9 @@ bool CHotKey::IsExtendedKey(DWORD vKey)
 		VK_UP,
 		VK_RIGHT,
 		VK_DOWN,
+
+		VK_LWIN,
+		VK_RWIN,
 	};
 
 	int nCount = sizeof(dwKeyCodes) / sizeof(DWORD);

@@ -6,6 +6,7 @@
 #include "VirtualMacroKey.h"
 #include "VirtualMacroKeyDlg.h"
 #include "afxdialogex.h"
+#include "UnitDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -410,5 +411,6 @@ void CVirtualMacroKeyDlg::OnBnClickedBtnRemove()
 
 void CVirtualMacroKeyDlg::OnBnClickedBtnAdd()
 {
-	
+	CUnitDlg unit;
+	unit.DoModal();
 }

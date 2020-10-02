@@ -1,5 +1,6 @@
 #pragma once
-
+#include "afxwin.h"
+#include "KeyEdit.h"
 
 // CUnitDlg dialog
 
@@ -21,4 +22,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 
+public:
+	CKeyEdit m_editKey;
 };
